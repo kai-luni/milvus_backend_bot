@@ -26,14 +26,17 @@ source export PATH="$HOME/.local/bin:$PATH"
 poetry env use python3.10
 
 # Activate poetry virtual environment
+echo 'poetry shell'
 poetry shell
 
 # Install dependencies
+echo 'poetry install'
 poetry install
 
 # Source variables
 source ~/export_variables.sh
 
 # Start the application
+echo 'start poetry'
 poetry run start
 
