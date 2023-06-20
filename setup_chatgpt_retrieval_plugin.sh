@@ -18,11 +18,9 @@ pip install poetry
 # Install poetry script to path
 curl -sSL https://install.python-poetry.org | python3 -
 
-# Add poetry to PATH
+# Add poetry to PATH so its there after restart, and export it for now in command 2
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-
-# Refresh bashrc to apply changes
-source ~/.bashrc
+source export PATH="$HOME/.local/bin:$PATH"
 
 # Set python version for poetry environment
 poetry env use python3.10
