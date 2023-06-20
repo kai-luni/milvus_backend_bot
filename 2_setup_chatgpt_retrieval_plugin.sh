@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #install packages
-sudo apt-get install -y build-essential
+sudo apt-get install -y build-essential python3-dev
 
 # Create directory for git repositories
 mkdir -p ~/git
