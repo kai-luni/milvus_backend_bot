@@ -13,11 +13,11 @@ Wichtig ist eine Ubuntu 22 VM mit public IP.
 6. Geben Sie unter "Instanzdetails" "myVM" als Namen der virtuellen Maschine ein und wählen Sie "Ubuntu Server 22.04 LTS - Gen2" als Ihr Image. Lassen Sie die anderen Standardwerte.
 7. Wählen Sie unter "Administrator-Konto" die Option "SSH-öffentlicher Schlüssel".
 8. Geben Sie "azureuser" als Benutzernamen ein.
-9. Lassen Sie bei der Quelle des SSH-öffentlichen Schlüssels die Standardeinstellung "Neues Schlüsselpaar generieren" und geben Sie dann "myKey" als Namen des Schlüsselpaares ein. Mann kann hier sonst auch ein Kennwort wählen, dass man beim Einloggen immer angeben muss.
+9. Wählen Sie ein Kennwort, dass man beim Einloggen immer angeben muss.
 10. Wählen Sie unter "Eingehende Portregeln > Öffentliche eingehende Ports" die Option "Ausgewählte Ports zulassen" und wählen Sie dann SSH (22) aus dem Dropdown-Menü aus.
 11. Lassen Sie die restlichen Standardwerte und wählen Sie dann die Schaltfläche "Überprüfen + erstellen" am unteren Rand der Seite.
 12. Auf der Seite "Virtuelle Maschine erstellen" können Sie die Details zur VM, die Sie erstellen möchten, einsehen. Wenn Sie bereit sind, wählen Sie "Erstellen".
-13. Wenn das Fenster zum Generieren eines neuen Schlüsselpaares geöffnet wird, wählen Sie "Privaten Schlüssel herunterladen und Ressource erstellen". Ihre Schlüsseldatei wird als "myKey.pem" heruntergeladen. Stellen Sie sicher, dass Sie wissen, wo die `.pem`-Datei heruntergeladen wurde; Sie benötigen den Pfad dazu im nächsten Schritt.
+13. Unter dem Netzwerkblade sicherstellen, dass eine Public IP genutzt wird. Hier macht es auch Sinn den Haken bei "IP löschen wenn VM gelöscht"
 14. Wenn die Bereitstellung abgeschlossen ist, wählen Sie "Zur Ressource gehen".
 15. Kopieren Sie auf der Seite Ihrer neuen VM die öffentliche IP-Adresse in Ihre Zwischenablage.
 16. (Diese beiden Schritte können mit dem Passwort übersprungen werden) Setzen Sie die nur-Lesen-Berechtigung auf die `.pem`-Datei mit dem Befehl `chmod 400 ~/Downloads/myKey.pem`.
