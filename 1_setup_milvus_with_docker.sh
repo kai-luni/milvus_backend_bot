@@ -2,7 +2,7 @@
 
 # Update package list and install docker
 sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io ca-certificates curl gnupg python3-pip
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io ca-certificates curl gnupg python3-pip python3-pip
 
 # Create directory for keyrings and set appropriate permissions
 sudo install -m 0755 -d /etc/apt/keyrings
