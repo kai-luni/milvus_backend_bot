@@ -33,4 +33,5 @@ def query_database(query_prompt: str) -> Dict[str, Any]:
 if __name__ == "__main__":
     while True:
         user_query = input("Enter your question: ")
-        print(query_database(user_query))
+        for result in query_database(user_query)["results"]:
+            print(result)
