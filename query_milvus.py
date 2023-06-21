@@ -35,7 +35,5 @@ if __name__ == "__main__":
     while True:
         user_query = input("Enter your question: ")
         query_results = query_database(user_query)["results"]
-        json_result = json.loads(query_results)
-        print(query_results)
-        for result in query_results["results"]:
+        for result in query_results[0]['results']:
             print(result)
