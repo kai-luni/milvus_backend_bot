@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Any, List, Dict
 import openai
@@ -33,7 +34,8 @@ def query_database(query_prompt: str) -> Dict[str, Any]:
 if __name__ == "__main__":
     while True:
         user_query = input("Enter your question: ")
-        query_results = query_database(user_query)["results"]["results"]
+        query_results = query_database(user_query)["results"]
+        json_result = json.loads(query_results)
         print(query_results)
-        for result in query_results:
+        for result in query_results["results"]:
             print(result)
