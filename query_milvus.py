@@ -13,7 +13,7 @@ def query_database(query_prompt: str) -> Dict[str, Any]:
     """
     Query vector database to retrieve chunk with user's input questions.
     """
-    url = "http://0.0.0.0:8000/query"
+    url = "http://98.71.204.175:8000/query"
     headers = {
         "Content-Type": "application/json",
         "accept": "application/json",
