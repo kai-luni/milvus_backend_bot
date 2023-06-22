@@ -19,7 +19,7 @@ def query_database(query_prompt: str) -> Dict[str, Any]:
         "accept": "application/json",
         "Authorization": f"Bearer {bearer_token}",
     }
-    data = {"queries": [{"query": query_prompt, "top_k": 8}]}
+    data = {"queries": [{"query": query_prompt, "top_k": 1}]}
 
     response = requests.post(url, json=data, headers=headers)
 
