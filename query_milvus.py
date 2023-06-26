@@ -1,11 +1,6 @@
-import json
 import os
-from typing import Any, List, Dict
-import openai
+from typing import Any, Dict
 import requests
-
-import logging
-logging.basicConfig(filename='my_application.log', level=logging.DEBUG)
 
 bearer_token = os.environ['BEARER_TOKEN']
 
@@ -13,7 +8,7 @@ def query_database(query_prompt: str) -> Dict[str, Any]:
     """
     Query vector database to retrieve chunk with user's input questions.
     """
-    url = "http://20.16.150.252:8000/query"
+    url = "http://20.224.28.135:8000/query"
     headers = {
         "Content-Type": "application/json",
         "accept": "application/json",
