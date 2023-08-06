@@ -33,6 +33,18 @@ def apply_prompt_template(question: str) -> str:
         A helper function that applies additional template on user's question.
         Prompt engineering could be done here to improve the result. Here I will just use a minimal example.
     """
+    prompt_test = f"""
+        --------------
+        {question}
+        --------------
+
+        Hier drueber stehen erst eine Menge Informationen und dann eine Frage.
+        Wenn in dem text hier am Anfang nichts relevantes zur Frage steht, dann gebe das wichtigste Wort der Frage
+        mit dreimal > davor zurueck.
+        Wenn in der Frage nach einer Person gefragt wird, dann antworte nur mit dem namen mit dreimal > davor, 
+        ohne sonst etwas zu schreiben. Auch keine Zeichen wie Punkte oder so.
+    """
+
     prompt = f"""
         Du bist ein Assistent, der die Informationen hier drueber nutzt, um Fragen zu beantworten. Beantworte die Fragen so, dass ein siebenjaehriger sie versteht. Wenn die Information im Text nicht vorhanden ist sage: 'Es tut mir leid, ich kenne die Antwort nicht.' {question}
     """
