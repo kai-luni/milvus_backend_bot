@@ -6,17 +6,17 @@ import logging
 logging.basicConfig(filename='my_application.log', level=logging.DEBUG)
 
 
-def query_database(query_prompt: str, bearer_token: str) -> Dict[str, Any]:
+def query_database(query_prompt: str, bearer_token: str, server_ip) -> Dict[str, Any]:
     """
     Query vector database to retrieve chunk with user's input questions.
     """
-    url = "http://20.16.150.252:8000/query"
+    url = f"http://{server_ip}:8000/query"
     headers = {
         "Content-Type": "application/json",
         "accept": "application/json",
         "Authorization": f"Bearer {bearer_token}",
     }
-    data = {"queries": [{"query": query_prompt, "top_k": 8}]}
+    data = {"queries": [{"query": query_prompt, "top_k": 22}]}
 
     response = requests.post(url, json=data, headers=headers)
 
@@ -34,7 +34,7 @@ def apply_prompt_template(question: str) -> str:
         Prompt engineering could be done here to improve the result. Here I will just use a minimal example.
     """
     prompt = f"""
-        By considering above input from me, answer the question: {question}
+        Du bist ein Assistent, der die Informationen hier drueber nutzt, um Fragen zu beantworten. Beantworte die Fragen so, dass ein siebenjaehriger sie versteht. Wenn die Information im Text nicht vorhanden ist sage: 'Es tut mir leid, ich kenne die Antwort nicht.' {question}
     """
     return prompt
 
@@ -54,13 +54,13 @@ def call_chatgpt_api(user_question: str, chunks: List[str]) -> Dict[str, Any]:
     response = openai.ChatCompletion.create(
         engine="gpt-35-turbo-version0301",
         messages=messages,
-        max_tokens=4096,
-        temperature=0.7,  # High temperature leads to a more creative response.
+        max_tokens=800,
+        temperature=0.5,  # High temperature leads to a more creative response.
     )
     return response
 
 
-def ask(user_question: str, bearer_token_db: str) -> Dict[str, Any]:
+def ask(user_question: str, bearer_token_db: str, server_ip: str, max_characters_extra_info = 16000) -> Dict[str, Any]:
     """
     This function is designed to handle user's questions by querying a database and generating responses using a ChatGPT API.
 
@@ -74,6 +74,7 @@ def ask(user_question: str, bearer_token_db: str) -> Dict[str, Any]:
     Parameters:
     user_question (str): The user's question that needs to be answered.
     bearer_token_db (str): The bearer token to authenticate and interact with the vector database.
+    server_ip (str): ip of the server
 
     Returns:
     Dict[str, Any]: A dictionary containing the generated response. The actual message content is located at the "choices"[0]["message"]["content"] location within the dictionary.
@@ -82,16 +83,19 @@ def ask(user_question: str, bearer_token_db: str) -> Dict[str, Any]:
     """
 
     # Get chunks from database.
-    chunks_response = query_database(user_question, bearer_token_db)
+    chunks_response = query_database(user_question, bearer_token_db, server_ip)
     chunks = []
+    char_counter = 0
     for result in chunks_response["results"]:
         for inner_result in result["results"]:
-            #innter_text = inner_result["text"]
-            chunks.append(inner_result["text"])
+            innter_text = inner_result["text"]
+            char_counter = char_counter + len(innter_text)
+            if char_counter > max_characters_extra_info:
+                continue
+            logging.info(f">>>>>> Add following info to question: {innter_text}")
+            chunks.append(innter_text)
 
     logging.info(">>>>>> User's questions: %s", user_question)
-    logging.info(">>>>>> Retrieved chunks: %s", chunks)
     response = call_chatgpt_api(user_question, chunks)
-    logging.info(">>>>>> Response: %s", response)
 
     return response["choices"][0]["message"]["content"]

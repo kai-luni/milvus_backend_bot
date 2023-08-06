@@ -1,5 +1,6 @@
 {
     "CHATGPT_MODEL":"gpt-35-turbo-version0301",
     "OPENAI_API_BASE":"https://playground-phat-openai.openai.azure.com/",
-    "OPENAI_API_VERSION":"2023-03-15-preview"
+    "OPENAI_API_VERSION":"2023-03-15-preview",
+    "SERVER_IP":"20.61.41.109"
 }

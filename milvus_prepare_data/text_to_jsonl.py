@@ -1,4 +1,5 @@
 import json
+import re
 
 # Function to convert a text file to a JSONL file
 def txt_to_jsonl(txt_file_path, jsonl_file_path):
@@ -11,7 +12,10 @@ def txt_to_jsonl(txt_file_path, jsonl_file_path):
 
                 # Skip empty lines and lines that start with '#'
                 if line and not line.startswith('#'):
+                    #get rid of all the bad stuff
                     clean_line = line.replace('"', '').replace("ü", "ue").replace("ä", "ae").replace("ö", "oe").replace("ß", "ss").replace("{", "").replace("}", "")
+                    
+
                     json_obj = {"id": str(id), "text": clean_line}
                     jsonl_file.write(json.dumps(json_obj))
                     jsonl_file.write('\n')

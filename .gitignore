@@ -1,3 +1,6 @@
 test_milvus_gpt/.env
 **/__pycache__/**
 **.log
+.vscode/**
+.vscode/launch.json
+gpt/**.jsonl

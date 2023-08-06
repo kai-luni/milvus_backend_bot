@@ -8,13 +8,13 @@ def query_database(query_prompt: str) -> Dict[str, Any]:
     """
     Query vector database to retrieve chunk with user's input questions.
     """
-    url = "http://20.224.28.135:8000/query"
+    url = "http://x.x.x.x:8000/query"
     headers = {
         "Content-Type": "application/json",
         "accept": "application/json",
         "Authorization": f"Bearer {bearer_token}",
     }
-    data = {"queries": [{"query": query_prompt, "top_k": 4}]}
+    data = {"queries": [{"query": query_prompt, "top_k": 16}]}
 
     response = requests.post(url, json=data, headers=headers)
 
@@ -31,4 +31,6 @@ if __name__ == "__main__":
         user_query = input("Enter your question: ")
         query_results = query_database(user_query)["results"]
         for result in query_results[0]['results']:
-            print(result)
+            print(result["id"])
+            print(result["text"])
+            print(">>>>>>>>>>>>>>>>>>>>")
