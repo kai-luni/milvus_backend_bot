@@ -1,3 +1,5 @@
+from datetime import datetime
+from dateutil.parser import parse
 import os
 import time
 import requests
@@ -53,7 +55,9 @@ def get_messages(access_token, chat_id):
     headers = {'Authorization': f'Bearer {access_token}'}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    return response.json()['value']
+    messages = response.json()['value']
+    return messages[:3]  # Return only the first 3 messages
+
 
 messages = get_messages(access_token, chat_id)
 for message in messages:
@@ -74,6 +78,51 @@ def send_message_to_chat(access_token, chat_id, message_content):
     response.raise_for_status()  # raise exception if any error
     return response.json()
 
-message_content = "Hello from PhatGPT!"
-send_message_to_chat(access_token, chat_id, message_content)
+# message_content = "Hello from PhatGPT!"
+# send_message_to_chat(access_token, chat_id, message_content)
+
+def get_last_timestamp():
+    try:
+        with open('last_timestamp.txt', 'r') as file:
+            return parse(file.read().strip())
+    except FileNotFoundError:
+        return None
+
+def set_last_timestamp(timestamp):
+    with open('last_timestamp.txt', 'w') as file:
+        file.write(str(timestamp))
+
+def get_messages_since(access_token, chat_id, last_timestamp):
+    messages = get_messages(access_token, chat_id)
+    if last_timestamp:
+        messages = [message for message in messages if parse(message['createdDateTime']) > last_timestamp]
+    return messages
+
+def mirror_message(access_token, chat_id, message_content):
+    send_message_to_chat(access_token, chat_id, f"echo: {message_content}")
+
+# Read the last timestamp from the file
+last_timestamp = get_last_timestamp()
+
+while True:
+    # Get messages since the last timestamp
+    messages = get_messages_since(access_token, chat_id, last_timestamp) if last_timestamp else get_messages(access_token, chat_id)
+
+    # Process new messages
+    for message in messages:
+        content = message['body']['content'].replace("<p>", "").replace("</p>", "")
+        timestamp = parse(message['createdDateTime'])
+
+        # Check if the message starts with '<p>phatgpt' and mirror it if it does
+        if content.lower().startswith('phatgpt'):
+            mirror_message(access_token, chat_id, content)
+
+        # Update the last timestamp
+        last_timestamp = timestamp
+
+    # Store the last timestamp in the file
+    set_last_timestamp(last_timestamp)
+
+    # Wait before polling again (adjust the sleep time as needed)
+    time.sleep(5)
 
