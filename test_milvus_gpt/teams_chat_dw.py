@@ -2,12 +2,22 @@ from datetime import datetime
 from dateutil.parser import parse
 import os
 import time
+import openai
 import requests
+
+from chat_utils import ask
 
 tenant_id = os.getenv("TEAMS_TENANT_ID")
 client_id = os.getenv("TEAMS_CLIENT_ID")
 scopes = 'https://graph.microsoft.com/.default'
 
+def initialize_openai():
+    openai.api_type = "azure"
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    openai.api_base = os.getenv('OPENAI_API_BASE')
+    openai.api_version = os.getenv('OPENAI_API_VERSION')
+
+######
 # # Request a device code
 # device_code_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/devicecode"
 # payload = {'client_id': client_id, 'scope': scopes}
@@ -32,6 +42,7 @@ scopes = 'https://graph.microsoft.com/.default'
 #         print(f"Access Token: {access_token}")
 #         break
 #     time.sleep(device_code_data['interval'])  # Wait before polling again
+###########
 
 access_token = os.getenv("TEAMS_TENANT_ACCESS_TOKEN")
 
@@ -101,6 +112,9 @@ def get_messages_since(access_token, chat_id, last_timestamp):
 def mirror_message(access_token, chat_id, message_content):
     send_message_to_chat(access_token, chat_id, f"echo: {message_content}")
 
+
+initialize_openai()
+
 # Read the last timestamp from the file
 last_timestamp = get_last_timestamp()
 
@@ -115,7 +129,9 @@ while True:
 
         # Check if the message starts with '<p>phatgpt' and mirror it if it does
         if content.lower().startswith('phatgpt'):
-            mirror_message(access_token, chat_id, content)
+            #mirror_message(access_token, chat_id, content)
+            answer = ask(content, os.environ['BEARER_TOKEN'], os.environ["SERVER_IP"])
+            send_message_to_chat(access_token, chat_id, f"answer: {answer}")
 
         # Update the last timestamp
         last_timestamp = timestamp
@@ -124,5 +140,5 @@ while True:
     set_last_timestamp(last_timestamp)
 
     # Wait before polling again (adjust the sleep time as needed)
-    time.sleep(5)
+    time.sleep(10)
 
