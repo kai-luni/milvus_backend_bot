@@ -46,7 +46,7 @@ def apply_prompt_template(question: str) -> str:
     """
 
     prompt = f"""
-        Du bist ein Assistent, der die Informationen hier drueber nutzt, um Fragen zu beantworten. Beantworte die Fragen so, dass ein siebenjaehriger sie versteht. Wenn die Information im Text nicht vorhanden ist sage: 'Es tut mir leid, ich kenne die Antwort nicht.' {question}
+        Du bist ein Assistent, der die Informationen hier drueber nutzt, um Fragen zu beantworten. Beantworte die Fragen so ausgiebig wie moeglich mit den vorhandenen informationen. Wenn die Information im Text nicht vorhanden ist sage: 'Es tut mir leid, ich kenne die Antwort nicht.' {question}
     """
     return prompt
 
