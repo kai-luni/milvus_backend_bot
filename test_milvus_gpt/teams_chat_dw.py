@@ -5,7 +5,7 @@ import time
 import openai
 import requests
 
-from chat_utils import ask
+from chat_utils import ask, ask_direct_search, search_jsonl
 
 import os
 import requests
@@ -100,7 +100,7 @@ def get_chats(access_token, tenant_id, client_id, scopes):
         response = requests.get(url, headers=headers)
     
     response.raise_for_status()
-    return response.json()['value']
+    return response.json()['value'], access_token
 
 
 def get_last_timestamp():
@@ -195,7 +195,8 @@ tenant_id = os.getenv("TEAMS_TENANT_ID")
 client_id = os.getenv("TEAMS_CLIENT_ID")
 scopes = 'https://graph.microsoft.com/.default'
 access_token = os.getenv("TEAMS_TENANT_ACCESS_TOKEN")
-chats = get_chats(access_token, tenant_id, client_id, scopes)
+##//TODO: make this check on access token better
+chats, access_token = get_chats(access_token, tenant_id, client_id, scopes)
 chat_gpt = next((chat for chat in chats if chat['topic'] == 'PhatGPT'), None)
 if chat_gpt:
     chat_id = chat_gpt['id']
@@ -225,9 +226,24 @@ while True:
 
         # Check if the message starts with '<p>phatgpt' and mirror it if it does
         if content.lower().startswith('phatgpt'):
-            #mirror_message(access_token, chat_id, content)
-            answer = ask(content, os.environ['BEARER_TOKEN'], os.environ["SERVER_IP"])
-            send_message_to_chat(access_token, chat_id, f"answer: {answer}")
+            answer_vector = ask(content, os.environ['BEARER_TOKEN'], os.environ["SERVER_IP"])
+            send_message_to_chat(access_token, chat_id, f"answer vectorsearch: {answer_vector}")
+
+            keywords = ask_direct_search(content)
+            all_texts = search_jsonl("/mnt/c/git_linux/milvus_backend_bot/gpt/phat_sharepoint.jsonl", keywords)
+            
+            texts = []
+            character_count = 0
+
+            for entry in all_texts:
+                if character_count + len(entry['text']) < 16000:
+                    texts.append(entry['text'])
+                    character_count += len(entry['text'])
+                else:
+                    break
+
+            answer = ask(content, None, None, 16000, texts)
+            send_message_to_chat(access_token, chat_id, f"answer directsearch: {answer}")
 
         # Update the last timestamp
         last_timestamp = timestamp
@@ -236,5 +252,5 @@ while True:
     set_last_timestamp(last_timestamp)
 
     # Wait before polling again (adjust the sleep time as needed)
-    time.sleep(10)
+    time.sleep(3)
 
