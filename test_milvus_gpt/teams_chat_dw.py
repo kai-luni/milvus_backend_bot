@@ -236,13 +236,13 @@ while True:
             character_count = 0
 
             for entry in all_texts:
-                if character_count + len(entry['text']) < 16000:
-                    texts.append(entry['text'])
-                    character_count += len(entry['text'])
+                if character_count + len(entry) < 16000:
+                    texts.append(entry)
+                    character_count += len(entry)
                 else:
                     break
 
-            answer = ask(content, None, None, 16000, texts)
+            answer = ask(content, None, None, 16000, source="direct_search")
             send_message_to_chat(access_token, chat_id, f"answer directsearch: {answer}")
 
         # Update the last timestamp

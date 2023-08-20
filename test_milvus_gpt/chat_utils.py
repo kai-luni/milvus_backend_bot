@@ -57,44 +57,36 @@ def call_chatgpt_api(user_question: str, chunks: List[str] = None) -> Dict[str, 
         return response
     except Exception as e:
         # Handle the exception as required, for now, just printing it
-        print(f"Error occurred: {e}")
-        return {}
+        logging.error(f"Error occurred: {e}")
+        raise e
 
 
-def ask(user_question: str, bearer_token_db: str, server_ip: str, max_characters_extra_info = 16000, chunks = None) -> Dict[str, Any]:
+def ask(user_question: str, bearer_token_db: str, server_ip: str, max_characters_extra_info = 16000, source: str = "vector") -> Dict[str, Any]:
     """
-    This function is designed to handle user's questions by querying a database and generating responses using a ChatGPT API.
+    Handles user questions, queries a database, and generates responses using ChatGPT.
 
-    It performs the following steps:
-    1. Queries a database using the user's question and a bearer token to get relevant text chunks.
-    2. Logs the user's question and the retrieved chunks for tracking and debugging purposes.
-    3. Calls the ChatGPT API with the user's question and the retrieved chunks to generate a response.
-    4. Logs the generated response.
-    5. Returns the first choice from the generated response.
+    - Queries the database with the user's question.
+    - Logs the user's question and the retrieved chunks.
+    - Calls ChatGPT with the question and chunks to generate a response.
+    - Logs and returns the first generated response.
 
     Parameters:
-    user_question (str): The user's question that needs to be answered.
-    bearer_token_db (str): The bearer token to authenticate and interact with the vector database.
-    server_ip (str): ip of the server
+    - user_question (str): The user's input question.
+    - bearer_token_db (str): Token for database authentication.
+    - server_ip (str): IP address of the server.
+    - max_characters_extra_info (int, optional): Maximum character limit for extra info. Defaults to 16000.
+    - source (str, optional): Data source type. Defaults to "vector".
 
     Returns:
-    Dict[str, Any]: A dictionary containing the generated response. The actual message content is located at the "choices"[0]["message"]["content"] location within the dictionary.
-
-    Note: The function assumes a specific structure of the returned results from both the database and the ChatGPT API.
+    - Dict[str, Any]: Contains the generated response in "choices"[0]["message"]["content"].
     """
-    if chunks is None:
+    chunks = ""
+    if source == "vector":
         # Get chunks from database.
-        chunks_response = query_database(user_question, bearer_token_db, server_ip)
-        chunks = []
-        char_counter = 0
-        for result in chunks_response["results"]:
-            for inner_result in result["results"]:
-                innter_text = inner_result["text"]
-                char_counter = char_counter + len(innter_text)
-                if char_counter > max_characters_extra_info:
-                    continue
-                logging.info(f">>>>>> Add following info to question: {innter_text}")
-                chunks.append(innter_text)
+        chunks = query_database(user_question, bearer_token_db, server_ip, max_characters_extra_info=max_characters_extra_info)
+    else:
+        keywords = ask_direct_search(user_question)
+        chunks = search_jsonl("/mnt/c/git_linux/milvus_backend_bot/gpt/phat_sharepoint.jsonl", keywords, max_characters_extra_info=max_characters_extra_info)
 
     logging.info(">>>>>> User's questions: %s", user_question)
     response = call_chatgpt_api(apply_prompt_template(user_question), chunks)
@@ -102,44 +94,40 @@ def ask(user_question: str, bearer_token_db: str, server_ip: str, max_characters
     return response["choices"][0]["message"]["content"]
 
 def ask_direct_search(user_question: str) -> Dict[str, Any]:
+    """
+    Handles user questions using ChatGPT for direct keyword extraction.
+
+    - Logs the user's question.
+    - Calls ChatGPT with the question and specific prompts to extract keywords.
+    - Returns the extracted keywords or relevant information.
+
+    Parameters:
+    - user_question (str): The user's input question.
+
+    Returns:
+    - Dict[str, Any]: Contains the extracted keywords or information in "choices"[0]["message"]["content"].
+    """
     logging.info(">>>>>> User's questions: %s", user_question)
     response = call_chatgpt_api(f"""{user_question} ---- Wenn in der Frage oben nach einer Person gefragt wurde, dann schreibe nur den Namen der Person. 
                                 Wenn nach einem Fachbegriff gefragt wurde, dann schreibe nur den Fachbegriff, ohne Fachbegriff zu sagen. 
                                 Ansonsten schreibe nur die Wichtigsten Keywords des Satzes heraus.""")
     return response["choices"][0]["message"]["content"]
 
-def search_jsonl(file_path: str, search_text: str):
+def query_database(query_prompt: str, bearer_token: str, server_ip: str, max_characters_extra_info: int = 16000) -> List[str]:
     """
-    Search for words in the text field of a .jsonl file and return matching entries.
-    
+    Queries a vector database and retrieves relevant text chunks based on the user's input.
+
     Parameters:
-    - file_path (str): Path to the .jsonl file.
-    - search_text (str): Space-separated words to search for. Special characters 
-                         (ä, ü, ö, ß) will be replaced with (ae, ue, oe, ss).
-    
+    - query_prompt (str): The user's input question or prompt for querying.
+    - bearer_token (str): Authentication token for the database.
+    - server_ip (str): IP address of the database server.
+    - max_characters_extra_info (int, optional): Max character limit for the combined chunks. Defaults to 16000.
+
     Returns:
-    - list: Entries sorted by the number of search words matched in descending order.
-    """
-    search_text = search_text.lower().replace('ä', 'ae').replace('ü', 'ue').replace('ö', 'oe').replace('ß', 'ss')
-    search_words = [word.lower() for word in search_text.split()]
-    
-    entries_with_counts = []
+    - List[str]: List of retrieved text chunks.
 
-    with open(file_path, 'r') as file:
-        for line in file:
-            entry = json.loads(line)
-            entry_text_lower = entry.get('text', '').lower()
-            match_count = sum(entry_text_lower.count(word) for word in search_words)
-            if match_count:
-                entries_with_counts.append((entry, match_count))
-    
-    sorted_entries = [entry for entry, count in sorted(entries_with_counts, key=lambda x: x[1], reverse=True)]
-                
-    return sorted_entries
-
-def query_database(query_prompt: str, bearer_token: str, server_ip) -> Dict[str, Any]:
-    """
-    Query vector database to retrieve chunk with user's input questions.
+    Raises:
+    - ValueError: If there's an error in the database response.
     """
     url = f"http://{server_ip}:8000/query"
     headers = {
@@ -153,7 +141,59 @@ def query_database(query_prompt: str, bearer_token: str, server_ip) -> Dict[str,
 
     if response.status_code == 200:
         result = response.json()
+
+        chunks = []
+        char_counter = 0
+        for result in result["results"]:
+            for inner_result in result["results"]:
+                innter_text = inner_result["text"]
+                char_counter = char_counter + len(innter_text)
+                if char_counter > max_characters_extra_info:
+                    continue
+                logging.info(f">>>>>> Add following info to question: {innter_text}")
+                chunks.append(innter_text)
+
         # process the result
-        return result
+        return chunks
     else:
         raise ValueError(f"Error: {response.status_code} : {response.content}")
+
+def search_jsonl(file_path: str, search_text: str, max_characters_extra_info: int = 16000) -> List[str]:
+    """
+    Search for words in a .jsonl file and return matching entries.
+    
+    Parameters:
+    - file_path (str): Path to the .jsonl file.
+    - search_text (str): Words to search for, separated by spaces. Special characters 
+                         (ä, ü, ö, ß) are replaced with (ae, ue, oe, ss).
+    - max_characters_extra_info (int, optional): Maximum combined character limit for returned entries. 
+                                                 Defaults to 16000.
+    
+    Returns:
+    - List[str]: List of entries sorted by the number of search words matched in descending order. 
+                 The total character count of the list will be below the 'max_characters_extra_info' threshold.
+    """
+    search_text = search_text.lower().replace('ä', 'ae').replace('ü', 'ue').replace('ö', 'oe').replace('ß', 'ss')
+    search_words = [word for word in search_text.split()]
+    
+    entries_with_counts = []
+
+    with open(file_path, 'r') as file:
+        for line in file:
+            entry = json.loads(line)
+            entry_text_lower = entry.get('text', '').lower()
+            match_count = sum(entry_text_lower.count(word) for word in search_words)
+            if match_count:
+                entries_with_counts.append((entry, match_count))
+    
+    sorted_texts = [entry["text"] for entry, _ in sorted(entries_with_counts, key=lambda x: x[1], reverse=True)]
+    
+    final_texts = []
+    char_counter = 0
+    for text in sorted_texts:
+        char_counter += len(text)
+        if char_counter > max_characters_extra_info:
+            break
+        final_texts.append(text)
+                
+    return final_texts
