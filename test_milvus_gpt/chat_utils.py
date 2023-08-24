@@ -4,10 +4,7 @@ import openai
 import requests
 
 import logging
-logging.basicConfig(filename='my_application.log', level=logging.DEBUG)
-
-
-
+logger = logging.getLogger(__name__)
 
 
 def apply_prompt_template(question: str) -> str:
@@ -57,7 +54,7 @@ def call_chatgpt_api(user_question: str, chunks: List[str] = None) -> Dict[str, 
         return response
     except Exception as e:
         # Handle the exception as required, for now, just printing it
-        logging.error(f"Error occurred: {e}")
+        logger.error(f"Error occurred: {e}")
         raise e
 
 
@@ -86,14 +83,17 @@ def ask(user_question: str, bearer_token_db: str, server_ip: str, max_characters
         chunks = query_database(user_question, bearer_token_db, server_ip, max_characters_extra_info=max_characters_extra_info)
     else:
         keywords = ask_direct_search(user_question)
+        logger.info(f">>>>>> The keywords for direct search are: {keywords}")
         chunks = search_jsonl("/mnt/c/git_linux/milvus_backend_bot/gpt/phat_sharepoint.jsonl", keywords, max_characters_extra_info=max_characters_extra_info)
 
-    logging.info(">>>>>> User's questions: %s", user_question)
+    logger.info(">>>>>> User's questions: %s", user_question)
+    if(len(chunks) == 0):
+        return "Es konnten keine Informationen zu dieser Frage gefunden werden."
     response = call_chatgpt_api(apply_prompt_template(user_question), chunks)
 
     return response["choices"][0]["message"]["content"]
 
-def ask_direct_search(user_question: str) -> Dict[str, Any]:
+def ask_direct_search(user_question: str) -> str:
     """
     Handles user questions using ChatGPT for direct keyword extraction.
 
@@ -105,13 +105,16 @@ def ask_direct_search(user_question: str) -> Dict[str, Any]:
     - user_question (str): The user's input question.
 
     Returns:
-    - Dict[str, Any]: Contains the extracted keywords or information in "choices"[0]["message"]["content"].
+    - str: Contains the extracted keywords or information
     """
-    logging.info(">>>>>> User's questions: %s", user_question)
-    response = call_chatgpt_api(f"""{user_question} ---- Wenn in der Frage oben nach einer Person gefragt wurde, dann schreibe nur den Namen der Person. 
-                                Wenn nach einem Fachbegriff gefragt wurde, dann schreibe nur den Fachbegriff, ohne Fachbegriff zu sagen. 
-                                Ansonsten schreibe nur die Wichtigsten Keywords des Satzes heraus.""")
-    return response["choices"][0]["message"]["content"]
+    logger.info(">>>>>> User's questions: %s", user_question)
+    response = call_chatgpt_api(f"""{user_question} ---- 
+        antworte mit ja oder nein (ein wort): wird oben nach einer person bei namen gefragt?""")["choices"][0]["message"]["content"]
+    if "ja" in response.lower():
+        return call_chatgpt_api(f"""{user_question} ----
+            helfe mir aus der frage oben nur den namen zu schreiben""")["choices"][0]["message"]["content"]
+    return call_chatgpt_api(f"""{user_question} ----
+        schreibe nur ein wort oder woerter: was sind die wichtigsten woerter in diesem satz oben?""")["choices"][0]["message"]["content"]
 
 def query_database(query_prompt: str, bearer_token: str, server_ip: str, max_characters_extra_info: int = 16000) -> List[str]:
     """
@@ -150,7 +153,7 @@ def query_database(query_prompt: str, bearer_token: str, server_ip: str, max_cha
                 char_counter = char_counter + len(innter_text)
                 if char_counter > max_characters_extra_info:
                     continue
-                logging.info(f">>>>>> Add following info to question: {innter_text}")
+                logger.info(f">>>>>> Add following info to question from Milvus: {innter_text}")
                 chunks.append(innter_text)
 
         # process the result
@@ -174,7 +177,7 @@ def search_jsonl(file_path: str, search_text: str, max_characters_extra_info: in
                  The total character count of the list will be below the 'max_characters_extra_info' threshold.
     """
     search_text = search_text.lower().replace('ä', 'ae').replace('ü', 'ue').replace('ö', 'oe').replace('ß', 'ss')
-    search_words = [word for word in search_text.split()]
+    search_words = [word.strip() for word in search_text.replace(",", "").replace('"', '').split()]
     
     entries_with_counts = []
 
@@ -182,6 +185,14 @@ def search_jsonl(file_path: str, search_text: str, max_characters_extra_info: in
         for line in file:
             entry = json.loads(line)
             entry_text_lower = entry.get('text', '').lower()
+
+            # print(entry.get('id', ''))
+            # if "Kai_Luenstaeden" in entry.get('id', ''):
+            #     search_word = search_words[0]
+            #     count = entry_text_lower.count(search_words[0])
+            #     is_in = search_words[0] in entry_text_lower
+            #     print(f">>>>>>>>><<<<<<<<<<<<< {entry.get('id', '')} count: {count} is in: {is_in}")
+
             match_count = sum(entry_text_lower.count(word) for word in search_words)
             if match_count:
                 entries_with_counts.append((entry, match_count))
@@ -195,5 +206,6 @@ def search_jsonl(file_path: str, search_text: str, max_characters_extra_info: in
         if char_counter > max_characters_extra_info:
             break
         final_texts.append(text)
+        logger.info(f">>>>>> Add following info to question from Direct Search: {text}")
                 
     return final_texts

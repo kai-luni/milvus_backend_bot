@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 from dateutil.parser import parse
 import os
 import time
@@ -212,6 +213,14 @@ for message in messages:
 
 initialize_openai()
 
+# Setup basic logging configuration
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    handlers=[logging.FileHandler('teams_chat.log'), logging.StreamHandler()])
+# Suppress or control logging from 'requests'
+logging.getLogger("requests").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+
 # Read the last timestamp from the file
 last_timestamp = get_last_timestamp()
 
@@ -227,23 +236,10 @@ while True:
         # Check if the message starts with '<p>phatgpt' and mirror it if it does
         if content.lower().startswith('phatgpt'):
             answer_vector = ask(content, os.environ['BEARER_TOKEN'], os.environ["SERVER_IP"])
+            answer_direct_question = ask(content, None, None, 16000, source="direct_search")
+
             send_message_to_chat(access_token, chat_id, f"answer vectorsearch: {answer_vector}")
-
-            keywords = ask_direct_search(content)
-            all_texts = search_jsonl("/mnt/c/git_linux/milvus_backend_bot/gpt/phat_sharepoint.jsonl", keywords)
-            
-            texts = []
-            character_count = 0
-
-            for entry in all_texts:
-                if character_count + len(entry) < 16000:
-                    texts.append(entry)
-                    character_count += len(entry)
-                else:
-                    break
-
-            answer = ask(content, None, None, 16000, source="direct_search")
-            send_message_to_chat(access_token, chat_id, f"answer directsearch: {answer}")
+            send_message_to_chat(access_token, chat_id, f"answer directsearch: {answer_direct_question}")
 
         # Update the last timestamp
         last_timestamp = timestamp

@@ -4,15 +4,11 @@ import time
 import openai
 import json
 
-# Load config values
-with open('config.json') as config_file:
-    config_details = json.load(config_file)
-
-chatgpt_model_name = config_details['CHATGPT_MODEL']
+chatgpt_model_name = os.getenv('CHATGPT_MODEL')
 openai.api_type = "azure"
 openai.api_key = os.getenv("OPENAI_API_KEY")
-openai.api_base = config_details['OPENAI_API_BASE']
-openai.api_version = config_details['OPENAI_API_VERSION']
+openai.api_base = os.getenv('OPENAI_API_BASE')
+openai.api_version = os.getenv('OPENAI_API_VERSION')
 
 base_system_message = "You are a helpful assistant."
 system_message = f"{base_system_message.strip()}"
@@ -174,14 +170,14 @@ def summarize_large_texts():
         None
     """
 
-    with open('file.jsonl', 'r') as jsonl_file:
-        with open('updated_file.jsonl', 'a') as outfile:
+    with open('gpt/phat_user.jsonl', 'r') as jsonl_file:
+        with open('gpt/updated_file.jsonl', 'a') as outfile:
             process = False
             for line in jsonl_file:
                 data = json.loads(line)  # convert JSON string to Python dictionary
                 #manually jump back to certain line in json file by setting the key here
                 id = data["id"]
-                if id == f"sites/PHATAlleAlle/SitePages/Offboarding-Stu.aspx":
+                if id == f"Soeren_Stein":
                     process = True
                 if not process:
                     continue
