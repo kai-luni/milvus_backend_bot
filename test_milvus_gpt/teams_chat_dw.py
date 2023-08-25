@@ -1,16 +1,20 @@
-from datetime import datetime
-import logging
-from dateutil.parser import parse
 import os
 import time
-import openai
+import logging
 import requests
+import openai
+from datetime import datetime
+from dateutil.parser import parse
 
 from chat_utils import ask, ask_direct_search, search_jsonl
 
-import os
-import requests
-import openai
+# Global Constants
+TEAMS_TENANT_ID = os.getenv("TEAMS_TENANT_ID")
+TEAMS_CLIENT_ID = os.getenv("TEAMS_CLIENT_ID")
+TEAMS_TENANT_ACCESS_TOKEN = os.getenv("TEAMS_TENANT_ACCESS_TOKEN")
+BEARER_TOKEN = os.getenv('BEARER_TOKEN')
+SERVER_IP = os.getenv("SERVER_IP")
+SCOPES = 'https://graph.microsoft.com/.default'
 
 def initialize_openai():
     """
@@ -192,61 +196,47 @@ def set_last_timestamp(timestamp):
         file.write(str(timestamp))
 
 
-tenant_id = os.getenv("TEAMS_TENANT_ID")
-client_id = os.getenv("TEAMS_CLIENT_ID")
-scopes = 'https://graph.microsoft.com/.default'
-access_token = os.getenv("TEAMS_TENANT_ACCESS_TOKEN")
-##//TODO: make this check on access token better
-chats, access_token = get_chats(access_token, tenant_id, client_id, scopes)
-chat_gpt = next((chat for chat in chats if chat['topic'] == 'PhatGPT'), None)
-if chat_gpt:
+def main():
+    initialize_openai()
+    
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        handlers=[logging.FileHandler('teams_chat.log'), logging.StreamHandler()])
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    
+    last_timestamp = get_last_timestamp()
+    
+    chats, access_token = get_chats(TEAMS_TENANT_ACCESS_TOKEN, TEAMS_TENANT_ID, TEAMS_CLIENT_ID, SCOPES)
+    chat_gpt = next((chat for chat in chats if chat['topic'] == 'PhatGPT'), None)
+    if not chat_gpt:
+        logging.error("ChatGPT not found")
+        return
+
     chat_id = chat_gpt['id']
-else:
-    print("ChatGPT not found")
-    exit()
 
-messages = get_messages(access_token, chat_id)
-for message in messages:
-    if message['from']:
-        print(f"From: {message['from']['user']['displayName']}")
-    print(f"Content: {message['body']['content']}\n")
+    # Consider adding an exit condition or loop limit for safety
+    while True:
+        messages = get_messages_since(access_token, chat_id, last_timestamp) if last_timestamp else get_messages(access_token, chat_id)
+        
+        for message in messages:
+            content = message['body']['content'].replace("<p>", "").replace("</p>", "")
+            timestamp = parse(message['createdDateTime'])
 
-initialize_openai()
+            # Check if the message starts with '<p>phatgpt' and mirror it if it does
+            if content.lower().startswith('phatgpt'):
+                answer_vector = ask(content, BEARER_TOKEN, SERVER_IP)
+                answer_direct_question = ask(content, BEARER_TOKEN, SERVER_IP, source="direct_search")
 
-# Setup basic logging configuration
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[logging.FileHandler('teams_chat.log'), logging.StreamHandler()])
-# Suppress or control logging from 'requests'
-logging.getLogger("requests").setLevel(logging.WARNING)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
+                send_message_to_chat(access_token, chat_id, f"answer vectorsearch: {answer_vector}")
+                send_message_to_chat(access_token, chat_id, f"answer directsearch: {answer_direct_question}")
 
-# Read the last timestamp from the file
-last_timestamp = get_last_timestamp()
+            # Update the last timestamp
+            last_timestamp = timestamp
+            
+        set_last_timestamp(last_timestamp)
+        time.sleep(3)  # Consider making this a constant or configurable value
 
-while True:
-    # Get messages since the last timestamp
-    messages = get_messages_since(access_token, chat_id, last_timestamp) if last_timestamp else get_messages(access_token, chat_id)
 
-    # Process new messages
-    for message in messages:
-        content = message['body']['content'].replace("<p>", "").replace("</p>", "")
-        timestamp = parse(message['createdDateTime'])
-
-        # Check if the message starts with '<p>phatgpt' and mirror it if it does
-        if content.lower().startswith('phatgpt'):
-            answer_vector = ask(content, os.environ['BEARER_TOKEN'], os.environ["SERVER_IP"])
-            answer_direct_question = ask(content, None, None, 16000, source="direct_search")
-
-            send_message_to_chat(access_token, chat_id, f"answer vectorsearch: {answer_vector}")
-            send_message_to_chat(access_token, chat_id, f"answer directsearch: {answer_direct_question}")
-
-        # Update the last timestamp
-        last_timestamp = timestamp
-
-    # Store the last timestamp in the file
-    set_last_timestamp(last_timestamp)
-
-    # Wait before polling again (adjust the sleep time as needed)
-    time.sleep(3)
-
+if __name__ == "__main__":
+    main()
