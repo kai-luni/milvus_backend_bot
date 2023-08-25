@@ -4,3 +4,4 @@ test_milvus_gpt/.env
 .vscode/**
 .vscode/launch.json
 gpt/**.jsonl
+teams_access_token.txt

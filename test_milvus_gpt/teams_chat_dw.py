@@ -15,6 +15,7 @@ TEAMS_TENANT_ACCESS_TOKEN = os.getenv("TEAMS_TENANT_ACCESS_TOKEN")
 BEARER_TOKEN = os.getenv('BEARER_TOKEN')
 SERVER_IP = os.getenv("SERVER_IP")
 SCOPES = 'https://graph.microsoft.com/.default'
+TOKEN_FILE_PATH = "teams_access_token.txt"
 
 def initialize_openai():
     """
@@ -96,11 +97,9 @@ def get_chats(access_token, tenant_id, client_id, scopes):
     headers = {'Authorization': f'Bearer {access_token}'}
     response = requests.get(url, headers=headers)
     
-    # If forbidden, re-run the process to get a new access token
+    # If forbidden, refresh the token and save it to the file
     if response.status_code == 401:
-        device_code_data = request_device_code(tenant_id, client_id, scopes)
-        access_token = poll_for_token(tenant_id, client_id, device_code_data)
-        print(f"New Access Token is: {access_token}")
+        access_token = refresh_teams_access_token(tenant_id, client_id, scopes)
         headers = {'Authorization': f'Bearer {access_token}'}
         response = requests.get(url, headers=headers)
     
@@ -159,6 +158,47 @@ def get_messages_since(access_token, chat_id, last_timestamp):
         messages = [message for message in messages if parse(message['createdDateTime']) > last_timestamp]
     return messages
 
+def get_teams_access_token(tenant_id, client_id, scopes):
+    """
+    Retrieve the access token from a local file. If not present, obtain a new one.
+    
+    Args:
+        tenant_id (str): The ID of the Azure AD tenant.
+        client_id (str): The application's client ID.
+        scopes (str): The space-separated list of scopes for which the token is requested.
+
+    Returns:
+        str: The access token.
+    """
+    # Try reading the token from the file
+    try:
+        with open(TOKEN_FILE_PATH, 'r') as token_file:
+            return token_file.read().strip()
+    except (FileNotFoundError, IOError):
+        # If reading fails, get a new token
+        return refresh_teams_access_token(tenant_id, client_id, scopes)
+
+def refresh_teams_access_token(tenant_id, client_id, scopes):
+    """
+    Obtain a new access token and save it to a local file.
+    
+    Args:
+        tenant_id (str): The ID of the Azure AD tenant.
+        client_id (str): The application's client ID.
+        scopes (str): The space-separated list of scopes for which the token is requested.
+
+    Returns:
+        str: The newly obtained access token.
+    """
+    device_code_data = request_device_code(tenant_id, client_id, scopes)
+    access_token = poll_for_token(tenant_id, client_id, device_code_data)
+    
+    # Save the new token to the file
+    with open(TOKEN_FILE_PATH, 'w') as token_file:
+        token_file.write(access_token)
+    
+    return access_token
+
 def send_message_to_chat(access_token, chat_id, message_content):
     """
     Send a message to a specific chat.
@@ -210,7 +250,7 @@ def main():
     chats, access_token = get_chats(TEAMS_TENANT_ACCESS_TOKEN, TEAMS_TENANT_ID, TEAMS_CLIENT_ID, SCOPES)
     chat_gpt = next((chat for chat in chats if chat['topic'] == 'PhatGPT'), None)
     if not chat_gpt:
-        logging.error("ChatGPT not found")
+        logging.error("ChatGPT chat not found")
         return
 
     chat_id = chat_gpt['id']
