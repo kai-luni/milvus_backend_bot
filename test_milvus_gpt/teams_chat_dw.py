@@ -78,7 +78,7 @@ def poll_for_token(tenant_id, client_id, device_code_data):
             return token_data['access_token']
         time.sleep(device_code_data['interval'])  # Wait before polling again
 
-def get_chats(access_token, tenant_id, client_id, scopes):
+def get_chats(access_token):
     """
     Retrieve the chats for the authenticated user.
 
@@ -86,9 +86,6 @@ def get_chats(access_token, tenant_id, client_id, scopes):
 
     Args:
         access_token (str): The access token to authenticate the request.
-        tenant_id (str): The ID of the Azure AD tenant.
-        client_id (str): The application's client ID.
-        scopes (str): The space-separated list of scopes for which the token is requested.
 
     Returns:
         list: A list containing the chats for the authenticated user.
@@ -98,13 +95,13 @@ def get_chats(access_token, tenant_id, client_id, scopes):
     response = requests.get(url, headers=headers)
     
     # If forbidden, refresh the token and save it to the file
-    if response.status_code == 401:
-        access_token = refresh_teams_access_token(tenant_id, client_id, scopes)
-        headers = {'Authorization': f'Bearer {access_token}'}
-        response = requests.get(url, headers=headers)
+    # if response.status_code == 401:
+    #     access_token = refresh_teams_access_token(tenant_id, client_id, scopes)
+    #     headers = {'Authorization': f'Bearer {access_token}'}
+    #     response = requests.get(url, headers=headers)
     
     response.raise_for_status()
-    return response.json()['value'], access_token
+    return response.json()['value']
 
 
 def get_last_timestamp():
@@ -173,7 +170,10 @@ def get_teams_access_token(tenant_id, client_id, scopes):
     # Try reading the token from the file
     try:
         with open(TOKEN_FILE_PATH, 'r') as token_file:
-            return token_file.read().strip()
+            access_token = token_file.read().strip()
+            # test the token
+            test = get_chats(access_token)
+            return access_token
     except (FileNotFoundError, IOError):
         # If reading fails, get a new token
         return refresh_teams_access_token(tenant_id, client_id, scopes)
@@ -247,7 +247,8 @@ def main():
     
     last_timestamp = get_last_timestamp()
     
-    chats, access_token = get_chats(TEAMS_TENANT_ACCESS_TOKEN, TEAMS_TENANT_ID, TEAMS_CLIENT_ID, SCOPES)
+    access_token = get_teams_access_token(TEAMS_TENANT_ID, TEAMS_CLIENT_ID, SCOPES)
+    chats = get_chats(access_token)
     chat_gpt = next((chat for chat in chats if chat['topic'] == 'PhatGPT'), None)
     if not chat_gpt:
         logging.error("ChatGPT chat not found")
@@ -257,7 +258,13 @@ def main():
 
     # Consider adding an exit condition or loop limit for safety
     while True:
-        messages = get_messages_since(access_token, chat_id, last_timestamp) if last_timestamp else get_messages(access_token, chat_id)
+        messages = None
+        try:
+            messages = get_messages_since(access_token, chat_id, last_timestamp) if last_timestamp else get_messages(access_token, chat_id)
+        except Exception as e:
+            logging.error(f"There was an error, retry in 60 seconds: {e}")
+            time.sleep(60)
+            continue
         
         for message in messages:
             content = message['body']['content'].replace("<p>", "").replace("</p>", "")
@@ -265,8 +272,8 @@ def main():
 
             # Check if the message starts with '<p>phatgpt' and mirror it if it does
             if content.lower().startswith('phatgpt'):
-                answer_vector = ask(content, BEARER_TOKEN, SERVER_IP)
-                answer_direct_question = ask(content, BEARER_TOKEN, SERVER_IP, source="direct_search")
+                answer_vector = ask(content, BEARER_TOKEN, SERVER_IP, max_characters_extra_info=48000)
+                answer_direct_question = ask(content, BEARER_TOKEN, SERVER_IP, source="direct_search", max_characters_extra_info=48000)
 
                 send_message_to_chat(access_token, chat_id, f"answer vectorsearch: {answer_vector}")
                 send_message_to_chat(access_token, chat_id, f"answer directsearch: {answer_direct_question}")

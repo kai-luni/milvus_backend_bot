@@ -25,11 +25,11 @@ def apply_prompt_template(question: str) -> str:
     """
 
     prompt = f"""
-        Du bist ein Assistent, der die Informationen hier drueber nutzt, um Fragen zu beantworten. Beantworte die Fragen so ausgiebig wie moeglich mit den vorhandenen informationen. Wenn die Information im Text nicht vorhanden ist sage: 'Es tut mir leid, ich kenne die Antwort nicht.' {question}
+        Du bist ein Assistent, der die Informationen hier drueber nutzt, um Fragen zu beantworten. Beantworte die Fragen so ausgiebig wie moeglich mit den vorhandenen informationen. Wenn die Information im Text nicht vorhanden ist, oder du dir nicht sicher bist sage: 'Es tut mir leid, ich kenne die Antwort nicht.' {question}
     """
     return prompt
 
-def call_chatgpt_api(user_question: str, chunks: List[str] = None) -> Dict[str, Any]:
+def call_chatgpt_api(user_question: str, chunks: List[str] = None, engine: str = "kai-gpt-16k-model") -> Dict[str, Any]:
     """
     Call chatgpt API with user's question and retrieved chunks.
     
@@ -46,10 +46,10 @@ def call_chatgpt_api(user_question: str, chunks: List[str] = None) -> Dict[str, 
     
     try:
         response = openai.ChatCompletion.create(
-            engine="gpt-35-turbo-version0301",
+            engine=engine,
             messages=messages,
             max_tokens=800,
-            temperature=0.5,
+            temperature=0.3,
         )
         return response
     except Exception as e:
@@ -86,9 +86,11 @@ def ask(user_question: str, bearer_token_db: str, server_ip: str, max_characters
         logger.info(f">>>>>> The keywords for direct search are: {keywords}")
         chunks = search_jsonl("/mnt/c/git_linux/milvus_backend_bot/gpt/phat_sharepoint.jsonl", keywords, max_characters_extra_info=max_characters_extra_info)
 
-    logger.info(">>>>>> User's questions: %s", user_question)
+    logger.info(f">>>>>> {source} User's questions: {user_question}")
+    logger.info(f">>>>>> {source} Use {len(chunks)} chunks")
     if(len(chunks) == 0):
         return "Es konnten keine Informationen zu dieser Frage gefunden werden."
+    
     response = call_chatgpt_api(apply_prompt_template(user_question), chunks)
 
     return response["choices"][0]["message"]["content"]

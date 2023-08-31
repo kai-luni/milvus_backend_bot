@@ -64,7 +64,7 @@ def send_message(messages, model_name, max_response_tokens=2500):
         try:
             time.sleep(4)
             response = openai.ChatCompletion.create(
-                engine="gpt-35-turbo-version0301",
+                engine=chatgpt_model_name,
                 messages=messages,
                 temperature=0.5,
                 max_tokens=max_response_tokens,
