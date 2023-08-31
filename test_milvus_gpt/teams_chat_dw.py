@@ -46,10 +46,16 @@ def request_device_code(tenant_id, client_id, scopes):
     response = requests.post(device_code_url, data=payload)
     device_code_data = response.json()
 
-    # Display the user code and verification URL
-    print(f"Please visit {device_code_data['verification_uri']} and enter the code: {device_code_data['user_code']}")
+    # Check if necessary keys are present in the response
+    if 'verification_uri' in device_code_data and 'user_code' in device_code_data:
+        print(f"Please visit {device_code_data['verification_uri']} and enter the code: {device_code_data['user_code']}")
+    else:
+        print("Failed to retrieve device code details. Please check the provided tenant ID, client ID, and scopes.")
+        print(f"tid {tenant_id}, clId {client_id},  scopes {scopes}")
+        print(f"Full response: {device_code_data}")
 
     return device_code_data
+
 
 def poll_for_token(tenant_id, client_id, device_code_data):
     """
