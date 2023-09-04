@@ -8,6 +8,12 @@ from rocketchat_API.rocketchat import RocketChat
 
 from test_milvus_gpt.chat_utils import call_chatgpt_api
 
+def get_env_variable(var_name):
+    value = os.getenv(var_name)
+    if not value:
+        raise ValueError(f"Environment variable {var_name} is not set or is empty.")
+    return value
+
 def initialize_openai():
     """
     Initialize the OpenAI settings using environment variables.
@@ -16,14 +22,14 @@ def initialize_openai():
     using the environment variables. Make sure the required environment variables are set before calling this function.
     """
     openai.api_type = "azure"
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-    openai.api_base = os.getenv('OPENAI_API_BASE')
-    openai.api_version = os.getenv('OPENAI_API_VERSION')
+    openai.api_key = get_env_variable("OPENAI_API_KEY")
+    openai.api_base = get_env_variable('OPENAI_API_BASE')
+    openai.api_version = get_env_variable('OPENAI_API_VERSION')
 
 
 
-client_id = os.getenv("REDDIT_CLIENT_ID")
-client_secret = os.getenv("REDDIT_CLIENT_SECRET")
+client_id = get_env_variable("REDDIT_CLIENT_ID")
+client_secret = get_env_variable("REDDIT_CLIENT_SECRET")
 
 # Initialize the Reddit instance
 reddit = praw.Reddit(client_id=client_id,
@@ -31,8 +37,8 @@ reddit = praw.Reddit(client_id=client_id,
                      user_agent='reddit_thread_reader')
 
 # Initialize RocketChat instance
-server_ip = os.getenv("SERVER_IP")
-password_rocket = os.getenv("PW_ROCKET")
+server_ip = get_env_variable("SERVER_IP")
+password_rocket = get_env_variable("PW_ROCKET")
 rocket = RocketChat('PhatGpt', password_rocket, server_url=f'http://{server_ip}:3000')
 channel = 'reddit_ukraine'  # Replace with your Rocket.Chat channel name
 
