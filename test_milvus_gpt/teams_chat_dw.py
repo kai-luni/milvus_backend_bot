@@ -6,7 +6,7 @@ import openai
 from datetime import datetime
 from dateutil.parser import parse
 
-from chat_utils import ask, ask_direct_search, search_jsonl
+from chat_utils import ask
 
 # Global Constants
 TEAMS_TENANT_ID = os.getenv("TEAMS_TENANT_ID")
@@ -72,6 +72,7 @@ def poll_for_token(tenant_id, client_id, device_code_data):
         str: The received access token.
     """
     token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
+    print("start waiting for device login")
     while True:
         payload = {
             'client_id': client_id,
@@ -81,8 +82,10 @@ def poll_for_token(tenant_id, client_id, device_code_data):
         response = requests.post(token_url, data=payload)
         token_data = response.json()
         if 'access_token' in token_data:
+            print("finish waiting for device login")
             return token_data['access_token']
         time.sleep(device_code_data['interval'])  # Wait before polling again
+    
 
 def get_chats(access_token):
     """
