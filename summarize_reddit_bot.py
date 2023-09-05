@@ -46,7 +46,7 @@ initialize_openai()
 
 while True:
     # Get the submission by URL
-    submission = reddit.submission(url='https://www.reddit.com/r/worldnews/comments/169hhtt/rworldnews_live_thread_russian_invasion_of/')
+    submission = reddit.submission(url='https://www.reddit.com/r/worldnews/comments/16ado16/rworldnews_live_thread_russian_invasion_of/')
 
     # Replace the "more" comments to fetch all top-level comments
     submission.comments.replace_more(limit=None)
