@@ -12,22 +12,44 @@ def apply_prompt_template(question: str) -> str:
         A helper function that applies additional template on user's question.
         Prompt engineering could be done here to improve the result. Here I will just use a minimal example.
     """
-    prompt_test = f"""
-        --------------
-        {question}
-        --------------
-
-        Hier drueber stehen erst eine Menge Informationen und dann eine Frage.
-        Wenn in dem text hier am Anfang nichts relevantes zur Frage steht, dann gebe das wichtigste Wort der Frage
-        mit dreimal > davor zurueck.
-        Wenn in der Frage nach einer Person gefragt wird, dann antworte nur mit dem namen mit dreimal > davor, 
-        ohne sonst etwas zu schreiben. Auch keine Zeichen wie Punkte oder so.
-    """
 
     prompt = f"""
         Du bist ein Assistent, der die Informationen hier drueber nutzt, um Fragen zu beantworten. Beantworte die Fragen so ausgiebig wie moeglich mit den vorhandenen informationen. Wenn die Information im Text nicht vorhanden ist, oder du dir nicht sicher bist sage: 'Es tut mir leid, ich kenne die Antwort nicht.' {question}
     """
     return prompt
+
+def call_chatgpt_api_user_promt_system_prompt(user_prompt: str, system_prompt: str = None, engine: str = "kai-gpt-16k-model") -> Dict[str, Any]:
+    """
+    Call chatgpt API with a user prompt and an optional system prompt.
+    
+    Parameters:
+    - user_prompt (str): The user's question or input to ask the model.
+    - system_prompt (str, optional): An optional system message to prepend before the user's input. Default is None.
+    - engine (str, optional): The OpenAI engine to use for the API call. Default is "kai-gpt-16k-model".
+    
+    Returns:
+    - Dict[str, Any]: The response from the GPT-3 API.
+    
+    Raises:
+    - Exception: If there's any error during the API call.
+    """
+    
+    messages = [{"role": "system", "content": system_prompt}]
+    messages.append({"role": "user", "content": user_prompt})
+    
+    try:
+        response = openai.ChatCompletion.create(
+            engine=engine,
+            messages=messages,
+            max_tokens=4000,
+            temperature=0.3,
+        )
+        return response
+    except Exception as e:
+        # Handle the exception as required, for now, just printing it
+        logger.error(f"Error occurred: {e}")
+        raise e
+
 
 def call_chatgpt_api(user_question: str, chunks: List[str] = None, engine: str = "kai-gpt-16k-model") -> Dict[str, Any]:
     """

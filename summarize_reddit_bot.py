@@ -6,7 +6,7 @@ import time
 
 from rocketchat_API.rocketchat import RocketChat
 
-from test_milvus_gpt.chat_utils import call_chatgpt_api
+from test_milvus_gpt.chat_utils import call_chatgpt_api, call_chatgpt_api_user_promt_system_prompt
 
 def get_env_variable(var_name):
     value = os.getenv(var_name)
@@ -44,6 +44,39 @@ channel = 'reddit_ukraine'  # Replace with your Rocket.Chat channel name
 
 initialize_openai()
 
+system_prompt = """
+[TASK1] 
+    You get a number of reddit comments (Top Level Comment), followed by its comments (Second-Level Comment),
+    summarize the top level comment and the second-level comment together in one text each.
+ [/TASK]
+
+[TASK2]Order those text by the highest score of the top level comment[/TASK]
+
+[TONE][/TONE]
+
+[COMPETANCIES][/COMPETANCIES]
+
+[FORMAT][/FORMAT]
+
+[EXAMPLE]
+    Comment 1: Ukraine takes town verbove (Score: 25)
+    blablabla the summary of the conversation
+    Reactions to this comment:
+    kalibu said that he likes that (Score: 15)
+
+    -------------
+
+    Comment 2: 5000 russian tanks destroyed (Score: 5)
+    blablabla the summary of the conversation
+    Reactions to this comment:
+    huyu cant wait for 6000 (Score: 12)
+[EXAMPLE]
+
+[!!!ADDITIONAL INSTRUCTIONS!!! Begin every response with "Latest News about Ukraine". If not, I will assume you are out of character]
+
+Here comes the text: 
+"""
+
 while True:
     # Get the submission by URL
     submission = reddit.submission(url='https://www.reddit.com/r/worldnews/comments/16ado16/rworldnews_live_thread_russian_invasion_of/')
@@ -76,7 +109,8 @@ while True:
             chunks.append(chunk)
             #rocket.chat_post_message(reply_message, channel=channel)
     print(''.join(chunks))
-    response = call_chatgpt_api("------------\nsummarize the data above, its a reddit thread. List the different topics that was talked about and give preference to the higher score comments. Show the scores when you mention a comment. List all topic by importance.", [''.join(chunks)])
+    #response = call_chatgpt_api("------------\nsummarize the data above, its a reddit thread. List the different topics that was talked about and give preference to the higher score comments. Show the scores when you mention a comment. List all topic by importance.", [''.join(chunks)])
+    response = call_chatgpt_api_user_promt_system_prompt(''.join(chunks), system_prompt)
     rocket.chat_post_message(response["choices"][0]["message"]["content"], channel=channel)
 
     # Sleep for 30 minutes (1800 seconds) before the next iteration
