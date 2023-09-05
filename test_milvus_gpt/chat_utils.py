@@ -41,7 +41,7 @@ def call_chatgpt_api_user_promt_system_prompt(user_prompt: str, system_prompt: s
         response = openai.ChatCompletion.create(
             engine=engine,
             messages=messages,
-            max_tokens=4000,
+            max_tokens=8000,
             temperature=0.3,
         )
         return response

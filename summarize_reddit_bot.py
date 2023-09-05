@@ -46,13 +46,13 @@ initialize_openai()
 
 system_prompt = """
 [TASK1] 
-    You get a number of reddit comments (Top Level Comment), followed by its comments (Second-Level Comment),
-    summarize the top level comment and the second-level comment together in one text each.
+    You  reddit comments (Top Level Comment), each followed by its comments (Second-Level Comment),
+    summarize the top level comment and the second-level comment together in one text each. Make this summary for all top level comments.
  [/TASK]
 
-[TASK2]Order those text by the highest score of the top level comment[/TASK]
+[TASK2]Add the score to each comment[/TASK]
 
-[TASK3]Write the score to each comment[/TASK]
+[TASK3]Start each new comment with '>>> '[/TASK]
 
 [TONE][/TONE]
 
@@ -61,12 +61,12 @@ system_prompt = """
 [FORMAT][/FORMAT]
 
 [EXAMPLE]
-    Comment 1: Ukraine takes town verbove (Score: 25)
+    >>> Comment 1: Ukraine takes town verbove (Score: 25)
     blablabla the summary of the conversation
     Reactions to this comment:
     kalibu said that he likes that (Score: 15)
 
-    Comment 2: 5000 russian tanks destroyed (Score: 5)
+    >>> Comment 2: 5000 russian tanks destroyed (Score: 5)
     blablabla the summary of the conversation
     Reactions to this comment:
     huyu cant wait for 6000 (Score: 12)
@@ -111,7 +111,8 @@ while True:
     print(''.join(chunks))
     #response = call_chatgpt_api("------------\nsummarize the data above, its a reddit thread. List the different topics that was talked about and give preference to the higher score comments. Show the scores when you mention a comment. List all topic by importance.", [''.join(chunks)])
     response = call_chatgpt_api_user_promt_system_prompt(''.join(chunks), system_prompt)
-    rocket.chat_post_message(response["choices"][0]["message"]["content"], channel=channel)
+    response_string = response["choices"][0]["message"]["content"]
+    rocket.chat_post_message(response_string, channel=channel)
 
     # Sleep for 30 minutes (1800 seconds) before the next iteration
     time.sleep(1800)
