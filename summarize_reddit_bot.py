@@ -52,6 +52,8 @@ system_prompt = """
 
 [TASK2]Order those text by the highest score of the top level comment[/TASK]
 
+[TASK3]Write the score to each comment[/TASK]
+
 [TONE][/TONE]
 
 [COMPETANCIES][/COMPETANCIES]
@@ -63,8 +65,6 @@ system_prompt = """
     blablabla the summary of the conversation
     Reactions to this comment:
     kalibu said that he likes that (Score: 15)
-
-    -------------
 
     Comment 2: 5000 russian tanks destroyed (Score: 5)
     blablabla the summary of the conversation
