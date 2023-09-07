@@ -106,7 +106,7 @@ def ask(user_question: str, bearer_token_db: str, server_ip: str, max_characters
     else:
         keywords = ask_direct_search(user_question)
         logger.info(f">>>>>> The keywords for direct search are: {keywords}")
-        chunks = search_jsonl("/mnt/c/git_linux/milvus_backend_bot/gpt/phat_sharepoint.jsonl", keywords, max_characters_extra_info=max_characters_extra_info)
+        chunks = search_jsonl("~/phat_sharepoint.jsonl", keywords, max_characters_extra_info=max_characters_extra_info)
 
     logger.info(f">>>>>> {source} User's questions: {user_question}")
     logger.info(f">>>>>> {source} Use {len(chunks)} chunks")
