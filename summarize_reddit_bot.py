@@ -108,7 +108,6 @@ while True:
     # Filter top-level comments posted in the last 120 minutes 
     recent_top_level_comments = [comment for comment in submission.comments if current_time - datetime.utcfromtimestamp(comment.created_utc) <= timedelta(minutes=120)]
     
-    # Calculate 'score' for each top comment based on the number of second-level comments
     for comment in recent_top_level_comments:
         comment.score = len(comment.replies)
 
@@ -119,25 +118,21 @@ while True:
 
     # Send the details of the recent top-level comments and their top 3 second-level comments to Rocket.Chat
     for i in range(len(recent_top_level_comments)):
-        print(i)
         top_comment = recent_top_level_comments[i]
-        test = recent_top_level_comments[1].body
         human_readable_time_top = datetime.utcfromtimestamp(top_comment.created_utc).strftime('%Y-%m-%d %H:%M:%S UTC')
         chunk = f"--- Top-Level Comment:\nAuthor: {top_comment.author}\nTime: {human_readable_time_top}\nScore: {top_comment.score}\n{top_comment.body}\n---\n"        
-        #rocket.chat_post_message(top_comment_message, channel=channel)
 
         # Sort the second-level comments by score, take the top 3, and filter out those with a score less than 1
-        top_replies = sorted([reply for reply in top_comment.replies if reply.score >= 1], key=lambda x: x.score, reverse=True)[:5]
+        top_replies = sorted([reply for reply in top_comment.replies if len(reply.replies) >= 1], key=lambda x: len(x.replies), reverse=True)[:5]
 
         # Send the top 3 second-level comments for the current top-level comment to Rocket.Chat
         for reply in top_replies:
             human_readable_time_reply = datetime.utcfromtimestamp(reply.created_utc).strftime('%Y-%m-%d %H:%M:%S UTC')
-            chunk = chunk + f" Second-Level Comment:\nAuthor: {reply.author}\nTime: {human_readable_time_reply}\nScore: {reply.score}\n{reply.body}\n---\n"
+            chunk = chunk + f" Second-Level Comment:\nAuthor: {reply.author}\nTime: {human_readable_time_reply}\nScore: {len(reply.replies)}\n{reply.body}\n---\n"
         print(f"append chunk with index {i}")
         chunks.append(chunk)
 
     print(''.join(chunks))
-    #response = call_chatgpt_api("------------\nsummarize the data above, its a reddit thread. List the different topics that was talked about and give preference to the higher score comments. Show the scores when you mention a comment. List all topic by importance.", [''.join(chunks)])
     logging.info(f">>>>>> Reddit Content: {''.join(chunks)}")
     response = call_chatgpt_api_user_promt_system_prompt(''.join(chunks), system_prompt)
     response_string = response["choices"][0]["message"]["content"]
