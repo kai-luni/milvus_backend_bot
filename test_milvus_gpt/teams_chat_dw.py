@@ -48,11 +48,11 @@ def request_device_code(tenant_id, client_id, scopes):
 
     # Check if necessary keys are present in the response
     if 'verification_uri' in device_code_data and 'user_code' in device_code_data:
-        print(f"Please visit {device_code_data['verification_uri']} and enter the code: {device_code_data['user_code']}")
+        logging.info(f"Please visit {device_code_data['verification_uri']} and enter the code: {device_code_data['user_code']}")
     else:
-        print("Failed to retrieve device code details. Please check the provided tenant ID, client ID, and scopes.")
-        print(f"tid {tenant_id}, clId {client_id},  scopes {scopes}")
-        print(f"Full response: {device_code_data}")
+        logging.info("Failed to retrieve device code details. Please check the provided tenant ID, client ID, and scopes.")
+        logging.info(f"tid {tenant_id}, clId {client_id},  scopes {scopes}")
+        logging.info(f"Full response: {device_code_data}")
 
     return device_code_data
 
@@ -72,7 +72,7 @@ def poll_for_token(tenant_id, client_id, device_code_data):
         str: The received access token.
     """
     token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
-    print("start waiting for device login")
+    logging.info("start waiting for device login")
     while True:
         payload = {
             'client_id': client_id,
@@ -82,7 +82,7 @@ def poll_for_token(tenant_id, client_id, device_code_data):
         response = requests.post(token_url, data=payload)
         token_data = response.json()
         if 'access_token' in token_data:
-            print("finish waiting for device login")
+            logging.info("finish waiting for device login")
             return token_data['access_token']
         time.sleep(device_code_data['interval'])  # Wait before polling again
     
