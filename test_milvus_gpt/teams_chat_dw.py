@@ -9,13 +9,19 @@ from dateutil.parser import parse
 from chat_utils import ask
 
 # Global Constants
-TEAMS_TENANT_ID = os.getenv("TEAMS_TENANT_ID")
-TEAMS_CLIENT_ID = os.getenv("TEAMS_CLIENT_ID")
-TEAMS_TENANT_ACCESS_TOKEN = os.getenv("TEAMS_TENANT_ACCESS_TOKEN")
-BEARER_TOKEN = os.getenv('BEARER_TOKEN')
-SERVER_IP = os.getenv("SERVER_IP")
+TEAMS_TENANT_ID = os.get_env_variable("TEAMS_TENANT_ID")
+TEAMS_CLIENT_ID = os.get_env_variable("TEAMS_CLIENT_ID")
+TEAMS_TENANT_ACCESS_TOKEN = os.get_env_variable("TEAMS_TENANT_ACCESS_TOKEN")
+BEARER_TOKEN = os.get_env_variable('BEARER_TOKEN')
+SERVER_IP = os.get_env_variable("SERVER_IP")
 SCOPES = 'https://graph.microsoft.com/.default'
 TOKEN_FILE_PATH = "teams_access_token.txt"
+
+def get_env_variable(var_name):
+    value = os.getenv(var_name)
+    if not value:
+        raise ValueError(f"Environment variable {var_name} is not set or is empty.")
+    return value
 
 def initialize_openai():
     """
@@ -25,9 +31,9 @@ def initialize_openai():
     using the environment variables. Make sure the required environment variables are set before calling this function.
     """
     openai.api_type = "azure"
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-    openai.api_base = os.getenv('OPENAI_API_BASE')
-    openai.api_version = os.getenv('OPENAI_API_VERSION')
+    openai.api_key = os.get_env_variable("OPENAI_API_KEY")
+    openai.api_base = os.get_env_variable('OPENAI_API_BASE')
+    openai.api_version = os.get_env_variable('OPENAI_API_VERSION')
 
 def request_device_code(tenant_id, client_id, scopes):
     """
