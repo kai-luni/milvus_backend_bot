@@ -71,12 +71,12 @@ Follow the format provided in the example below.
 
 [EXAMPLE]
 
-            Comment 1: Ukraine takes town verbove (Score: 25)
+            >>> Comment 1: Ukraine takes town verbove (Score: 25)
             Summary of the conversation.
             Reactions to this comment:
             kalibu said that he likes that (Score: 15)
 
-            Comment 2: 5000 Russian tanks destroyed (Score: 5)
+            >>> Comment 2: 5000 Russian tanks destroyed (Score: 5)
             Summary of the conversation.
             Reactions to this comment:
             huyu can't wait for 6000 (Score: 12)
